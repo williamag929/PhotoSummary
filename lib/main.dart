@@ -6,9 +6,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
-import 'package:aws_s3_upload/aws_s3_upload.dart';
+//import 'package:aws_s3_upload/aws_s3_upload.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();  
   runApp(const MyApp());
 }
 
@@ -67,6 +69,11 @@ class _MyHomePageState extends State<MyHomePage> {
   String _analysisResult = '';
   String _summary = '';
   final picker = ImagePicker();
+  final String awsS3Bucket = 'your-bucket-name'; // Replace with your S3 bucket
+  final String awsRegion = 'us-east-1'; // Replace with your AWS region
+  final String lambdaImageUrl = 'https://your-lambda-image-endpoint'; // Replace with Lambda endpoint
+  final String lambdaSummaryUrl = 'https://your-lambda-summary-endpoint'; // Replace with Lambda endpoint
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Pick image and upload to S3
   Future<void> _pickImage() async {
@@ -75,25 +82,25 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         _image = File(pickedFile.path);
       });
-      String photoUrl = await _uploadToS3(_image!);
+      String photoUrl = '';//await _uploadToS3(_image!);
       await _analyzeImage(photoUrl);
     }
   }
 
   // Upload image to S3
-  Future<String> _uploadToS3(File image) async {
-    final fileName = 'photos/${DateTime.now().millisecondsSinceEpoch}.jpg';
-    await AwsS3.uploadFile(
-      accessKey: 'YOUR_AWS_ACCESS_KEY',
-      secretKey: 'YOUR_AWS_SECRET_KEY',
-      file: image,
-      bucket: awsS3Bucket,
-      region: awsRegion,
-      destDir: 'photos',
-      filename: fileName,
-    );
-    return 'https://$awsS3Bucket.s3.$awsRegion.amazonaws.com/$fileName';
-  }
+//  Future<String> _uploadToS3(File image) async {
+//    final fileName = 'photos/${DateTime.now().millisecondsSinceEpoch}.jpg';
+//    await AwsS3.uploadFile(
+//      accessKey: 'YOUR_AWS_ACCESS_KEY',
+//      secretKey: 'YOUR_AWS_SECRET_KEY',
+//      file: image,
+//      bucket: awsS3Bucket,
+//      region: awsRegion,
+//      destDir: 'photos',
+//      filename: fileName,
+//    );
+//    return 'https://$awsS3Bucket.s3.$awsRegion.amazonaws.com/$fileName';
+//  }
 
   // Call Lambda for YOLO image analysis
   Future<void> _analyzeImage(String photoUrl) async {
