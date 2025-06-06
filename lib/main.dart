@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+import 'package:aws_s3_upload/aws_s3_upload.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,6 +63,113 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  File? _image;
+  String _analysisResult = '';
+  String _summary = '';
+  final picker = ImagePicker();
+
+  // Pick image and upload to S3
+  Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null && mounted) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+      String photoUrl = await _uploadToS3(_image!);
+      await _analyzeImage(photoUrl);
+    }
+  }
+
+  // Upload image to S3
+  Future<String> _uploadToS3(File image) async {
+    final fileName = 'photos/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await AwsS3.uploadFile(
+      accessKey: 'YOUR_AWS_ACCESS_KEY',
+      secretKey: 'YOUR_AWS_SECRET_KEY',
+      file: image,
+      bucket: awsS3Bucket,
+      region: awsRegion,
+      destDir: 'photos',
+      filename: fileName,
+    );
+    return 'https://$awsS3Bucket.s3.$awsRegion.amazonaws.com/$fileName';
+  }
+
+  // Call Lambda for YOLO image analysis
+  Future<void> _analyzeImage(String photoUrl) async {
+    try {
+      final response = await http.post(
+        Uri.parse(lambdaImageUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: '{"photo_url": "$photoUrl"}',
+      );
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _analysisResult = response.body; // e.g., "Detected: 2 helmets, 1 excavator"
+        });
+        await _savePhotoMetadata(photoUrl, _analysisResult);
+        await _summarizeAnalysis(_analysisResult);
+      } else {
+        setState(() {
+          _analysisResult = 'Error analyzing image: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _analysisResult = 'Error: $e';
+        });
+      }
+    }
+  }
+
+  // Save photo metadata and analysis to Firestore
+  Future<void> _savePhotoMetadata(String photoUrl, String analysis) async {
+    final photoId = _firestore.collection('photo').doc().id;
+    await _firestore.collection('photo').doc(photoId).set({
+      'photo_id': photoId,
+      'url': photoUrl,
+      'project_id': 'sample_project_id', // Replace with actual project ID
+      'timestamp': Timestamp.now(),
+    });
+    await _firestore.collection('summary_photo').doc().set({
+      'photo_id': photoId,
+      'analysis': analysis,
+      'timestamp': Timestamp.now(),
+    });
+  }
+
+  // Call Lambda for xAI summarization
+  Future<void> _summarizeAnalysis(String analysis) async {
+    try {
+      final response = await http.post(
+        Uri.parse(lambdaSummaryUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: '{"text": "$analysis"}',
+      );
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _summary = response.body; // e.g., "Summary: 2 helmets and 1 excavator detected"
+        });
+        await _firestore.collection('notes').doc().set({
+          'project_id': 'sample_project_id', // Replace with actual project ID
+          'content': _summary,
+          'timestamp': Timestamp.now(),
+        });
+      } else {
+        setState(() {
+          _summary = 'Error summarizing: ${response.statusCode}';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _summary = 'Error: $e';
+        });
+      }
+    }
+  }
+
 
   void _incrementCounter() {
     setState(() {
@@ -104,19 +219,22 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            ElevatedButton(
+              onPressed: _pickImage,
+              child: Text('Take Photo'),
             ),
+            if (_image != null)
+              Image.file(_image!, height: 200),
+            Text('Analysis: $_analysisResult'),
+            Text('Summary: $_summary'),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      //floatingActionButton: FloatingActionButton(
+      //  onPressed: _incrementCounter,
+      //  tooltip: 'Increment',
+      //  child: const Icon(Icons.add),
+      //), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
