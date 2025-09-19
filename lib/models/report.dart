@@ -1,27 +1,38 @@
-//import 'package:uuid/uuid.dart';
 
 class Report {
   final String id;
   final DateTime date;
-  final String note;
-  final String photoPath;
-  final String? aiAnalysis;
+  final String? photoPath;
+  final String section;
+  final String issue;
+  final String location;
+  final String details;
+  final String actionRequired;
+  final String assignedTo;
 
   Report({
     required this.id,
     required this.date,
-    required this.note,
-    required this.photoPath,
-    this.aiAnalysis,
+    this.photoPath,
+    required this.section,
+    required this.issue,
+    required this.location,
+    required this.details,
+    required this.actionRequired,
+    required this.assignedTo,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'date': date.toIso8601String(),
-      'note': note,
       'photoPath': photoPath,
-      'aiAnalysis': aiAnalysis,
+      'section': section,
+      'issue': issue,
+      'location': location,
+      'details': details,
+      'actionRequired': actionRequired,
+      'assignedTo': assignedTo,
     };
   }
 
@@ -29,9 +40,13 @@ class Report {
     return Report(
       id: map['id'],
       date: DateTime.parse(map['date']),
-      note: map['note'],
       photoPath: map['photoPath'],
-      aiAnalysis: map['aiAnalysis'],
+      section: map['section'],
+      issue: map['issue'],
+      location: map['location'],
+      details: map['details'],
+      actionRequired: map['actionRequired'],
+      assignedTo: map['assignedTo'],
     );
   }
 }

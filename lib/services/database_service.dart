@@ -22,9 +22,13 @@ class DatabaseService {
           CREATE TABLE reports (
             id TEXT PRIMARY KEY,
             date TEXT,
-            note TEXT,
             photoPath TEXT,
-            aiAnalysis TEXT
+            section TEXT,
+            issue TEXT,
+            location TEXT,
+            details TEXT,
+            actionRequired TEXT,
+            assignedTo TEXT
           )
         ''');
       },

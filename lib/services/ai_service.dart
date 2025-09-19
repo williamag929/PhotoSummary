@@ -10,6 +10,20 @@ class stateSummary {
   stateSummary({this.summary});
 }
 
+class TranscribedMemo {
+  final String text;
+  final String location;
+  final String subcontractor;
+  final String priority;
+
+  TranscribedMemo({
+    required this.text,
+    required this.location,
+    required this.subcontractor,
+    required this.priority,
+  });
+}
+
 class AIService {
   // AI image analysis using TensorFlow Lite
 
@@ -66,5 +80,26 @@ class AIService {
     } catch (e) {
       stateSummary(summary: 'Error: $e');
     }
+  }
+
+  Future<String> getSpec(String query) async {
+    // In a real app, this would query a database or an API.
+    // For this demo, we'll return a canned response.
+    if (query.contains("conduit supports")) {
+      return "Specification E-301, section 4.2 states: 'Conduit supports for 3/4 inch EMT must be spaced at a maximum of 10 feet on center.'";
+    }
+    return "I'm sorry, I couldn't find that specification.";
+  }
+
+  Future<TranscribedMemo> transcribeVoiceMemo(String audioPath) async {
+    // In a real app, this would use a speech-to-text API.
+    // For this demo, we'll return a canned response based on the user story.
+    return TranscribedMemo(
+      text:
+          "Non-conformance issue. Conduit supports are spaced at twelve feet. Specification E-301 requires ten-foot spacing.",
+      location: "Fourth floor, northeast quadrant, above grid line C",
+      subcontractor: "Sparks Electrical",
+      priority: "Needs to be remediated before the ceiling grid is installed on Friday.",
+    );
   }
 }
