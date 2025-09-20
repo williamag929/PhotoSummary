@@ -63,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
         child: Icon(Icons.add_a_photo),
         onPressed: _navigateToReportScreen,
       ),

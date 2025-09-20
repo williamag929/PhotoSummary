@@ -73,14 +73,17 @@ class _ReportScreenState extends State<ReportScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           FloatingActionButton(
+                            heroTag: 'camera_fab',
                             onPressed: _takePicture,
                             child: Icon(Icons.camera_alt),
                           ),
                           FloatingActionButton(
+                            heroTag: 'mic_fab',
                             onPressed: _listen,
                             child: Icon(_isListening ? Icons.mic : Icons.mic_none),
                           ),
                           FloatingActionButton(
+                            heroTag: 'check_fab',
                             onPressed: _createReport,
                             child: Icon(Icons.check),
                           ),
