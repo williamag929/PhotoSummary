@@ -113,23 +113,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _createNewReport(String imagePath, String transcribedText) async {
-    // Step 1: Listen to the Specs (Simulated)
-    final spec = await _aiService.getSpec("conduit supports");
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(spec)));
-
-    // Step 2: Photo and Voice Memo
-    final transcribedMemo = await _aiService.transcribeVoiceMemo(transcribedText);
-
     final newReport = Report(
       id: DateTime.now().toString(),
       date: DateTime.now(),
       photoPath: imagePath,
       section: "Electrical",
-      issue: "Non-conformance issue",
-      location: transcribedMemo.location,
-      details: transcribedMemo.text,
-      actionRequired: transcribedMemo.priority,
-      assignedTo: transcribedMemo.subcontractor,
+      issue: transcribedText, // Use transcribed text directly
+      location: "", // These fields will be empty for now
+      details: "",
+      actionRequired: "",
+      assignedTo: "",
     );
 
     await _dbService.insertReport(newReport);
