@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:camera/camera.dart';
 import './models/report.dart';
 import './services/database_service.dart';
 import './services/pdf_service.dart';
 import './services/ai_service.dart';
-import 'package:image_picker/image_picker.dart';
+import './report_screen.dart';
 import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
+  final CameraDescription camera;
+
+  const HomeScreen({Key? key, required this.camera}) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -58,8 +63,8 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: _createNewReport,
+        child: Icon(Icons.add_a_photo),
+        onPressed: _navigateToReportScreen,
       ),
     );
   }
@@ -93,19 +98,31 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _createNewReport() async {
+  Future<void> _navigateToReportScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReportScreen(camera: widget.camera),
+      ),
+    );
+
+    if (result != null) {
+      _createNewReport(result['image']!.path, result['text']);
+    }
+  }
+
+  Future<void> _createNewReport(String imagePath, String transcribedText) async {
     // Step 1: Listen to the Specs (Simulated)
     final spec = await _aiService.getSpec("conduit supports");
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(spec)));
 
-    // Step 2: Photo and Voice Memo (Simulated)
-    final image = await ImagePicker().pickImage(source: ImageSource.camera);
-    final transcribedMemo = await _aiService.transcribeVoiceMemo("");
+    // Step 2: Photo and Voice Memo
+    final transcribedMemo = await _aiService.transcribeVoiceMemo(transcribedText);
 
     final newReport = Report(
       id: DateTime.now().toString(),
       date: DateTime.now(),
-      photoPath: image?.path,
+      photoPath: imagePath,
       section: "Electrical",
       issue: "Non-conformance issue",
       location: transcribedMemo.location,
