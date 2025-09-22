@@ -1,7 +1,9 @@
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
+import 'package:provider/provider.dart';
 import './models/report.dart';
 import './services/database_service.dart';
 import './services/pdf_service.dart';
@@ -9,6 +11,8 @@ import './services/ai_service.dart';
 import './report_screen.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
+import './providers/project_provider.dart';
+import './screens/project_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -24,15 +28,33 @@ class _HomeScreenState extends State<HomeScreen> {
   final PdfService _pdfService = PdfService();
   final AIService _aiService = AIService();
   List<Report> _reports = [];
+  int? _currentProjectId;
 
   @override
   void initState() {
     super.initState();
-    _loadReports();
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    projectProvider.fetchProjects().then((_) {
+      if (projectProvider.currentProject != null) {
+        _loadReports(projectProvider.currentProject!.id);
+      } else {
+        _loadReports(null);
+      }
+    });
   }
 
-  Future<void> _loadReports() async {
-    final reports = await _dbService.getReports();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final projectProvider = Provider.of<ProjectProvider>(context);
+    if (_currentProjectId != projectProvider.currentProject?.id) {
+      _currentProjectId = projectProvider.currentProject?.id;
+      _loadReports(_currentProjectId);
+    }
+  }
+
+  Future<void> _loadReports(int? projectId) async {
+    final reports = await _dbService.getReports(projectId: projectId);
     setState(() {
       _reports = reports;
     });
@@ -40,10 +62,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final projectProvider = Provider.of<ProjectProvider>(context);
+    final currentProject = projectProvider.currentProject;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('SiteScribe'),
+        title: Text(currentProject?.name ?? 'SiteScribe'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.folder),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProjectScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(Icons.picture_as_pdf),
             onPressed: _generateReport,
@@ -162,11 +196,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 issue: issueController.text,
                 location: locationController.text,
                 details: detailsController.text,
-                actionRequired: report.actionRequired, // This is not editable in this design
+                actionRequired: report.actionRequired,
                 assignedTo: assignedToController.text,
+                projectId: report.projectId,
               );
               await _dbService.insertReport(updatedReport);
-              _loadReports();
+              _loadReports(report.projectId);
               Navigator.of(context).pop();
             },
           ),
@@ -192,6 +227,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _createNewReport(
       List<String> imagePaths, String transcribedText) async {
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final currentProject = projectProvider.currentProject;
+
     final newReport = Report(
       id: DateTime.now().toString(),
       date: DateTime.now(),
@@ -202,10 +240,11 @@ class _HomeScreenState extends State<HomeScreen> {
       details: "",
       actionRequired: "",
       assignedTo: "",
+      projectId: currentProject?.id,
     );
 
     await _dbService.insertReport(newReport);
-    _loadReports();
+    _loadReports(currentProject?.id);
   }
 
   Future<void> _generateReport() async {

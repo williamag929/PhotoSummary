@@ -9,6 +9,7 @@ class Report {
   final String details;
   final String actionRequired;
   final String assignedTo;
+  final int? projectId;
 
   Report({
     required this.id,
@@ -20,6 +21,7 @@ class Report {
     required this.details,
     required this.actionRequired,
     required this.assignedTo,
+    this.projectId,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +35,7 @@ class Report {
       'details': details,
       'actionRequired': actionRequired,
       'assignedTo': assignedTo,
+      'projectId': projectId,
     };
   }
 
@@ -47,6 +50,7 @@ class Report {
       details: map['details'],
       actionRequired: map['actionRequired'],
       assignedTo: map['assignedTo'],
+      projectId: map['projectId'],
     );
   }
 }

@@ -1,3 +1,4 @@
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/report.dart';
@@ -16,7 +17,7 @@ class DatabaseService {
     final path = join(dbPath, 'construction_daily_report.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Incremented version
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE reports (
@@ -28,9 +29,15 @@ class DatabaseService {
             location TEXT,
             details TEXT,
             actionRequired TEXT,
-            assignedTo TEXT
+            assignedTo TEXT,
+            projectId INTEGER
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE reports ADD COLUMN projectId INTEGER');
+        }
       },
     );
   }
@@ -44,9 +51,13 @@ class DatabaseService {
     );
   }
 
-  Future<List<Report>> getReports() async {
+  Future<List<Report>> getReports({int? projectId}) async {
     final db = await database;
-    final maps = await db.query('reports');
+    final maps = await db.query(
+      'reports',
+      where: projectId != null ? 'projectId = ?' : null,
+      whereArgs: projectId != null ? [projectId] : null,
+    );
     return List.generate(maps.length, (i) => Report.fromMap(maps[i]));
   }
 }
