@@ -18,7 +18,7 @@ class _ReportScreenState extends State<ReportScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = '';
-  XFile? _imageFile;
+  List<XFile> _imageFiles = [];
   bool _isTyping = false;
   final TextEditingController _textEditingController = TextEditingController();
 
@@ -68,16 +68,28 @@ class _ReportScreenState extends State<ReportScreen> {
             return Stack(
               children: [
                 CameraPreview(_controller),
-                if (_imageFile != null)
-                  Positioned(
-                    bottom: 80,
-                    left: 20,
-                    child: Image.file(
-                      File(_imageFile!.path),
-                      width: 60,
-                      height: 60,
+                Positioned(
+                  bottom: 150,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _imageFiles.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Image.file(
+                            File(_imageFiles[index].path),
+                            width: 60,
+                            height: 60,
+                          ),
+                        );
+                      },
                     ),
                   ),
+                ),
                 Positioned(
                   bottom: 20,
                   left: 0,
@@ -141,7 +153,7 @@ class _ReportScreenState extends State<ReportScreen> {
       await _initializeControllerFuture;
       final image = await _controller.takePicture();
       setState(() {
-        _imageFile = image;
+        _imageFiles.add(image);
       });
     } catch (e) {
       print(e);
@@ -160,6 +172,7 @@ class _ReportScreenState extends State<ReportScreen> {
           onResult: (val) => setState(() {
             _text = val.recognizedWords;
           }),
+          listenFor: Duration(minutes: 5),
         );
       }
     } else {
@@ -169,8 +182,11 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _createReport() {
-    if (_imageFile != null && _text.isNotEmpty) {
-      Navigator.pop(context, {'image': _imageFile, 'text': _text});
+    if (_imageFiles.isNotEmpty && _text.isNotEmpty) {
+      Navigator.pop(context, {
+        'images': _imageFiles.map((e) => e.path).toList(),
+        'text': _text
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please take a picture and add a description.')),
