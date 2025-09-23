@@ -60,4 +60,13 @@ class DatabaseService {
     );
     return List.generate(maps.length, (i) => Report.fromMap(maps[i]));
   }
+
+  Future<void> deleteReport(String id) async {
+    final db = await database;
+    await db.delete(
+      'reports',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

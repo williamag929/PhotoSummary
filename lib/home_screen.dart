@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:open_file/open_file.dart';
 import './providers/project_provider.dart';
 import './screens/project_screen.dart';
+import './screens/full_screen_image_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -67,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentProject?.name ?? 'SiteScribe'),
+        title: Text(currentProject?.name ?? 'JobLog'),
         actions: [
           IconButton(
             icon: Icon(Icons.folder),
@@ -104,13 +105,47 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           }
 
-          return ListTile(
-            leading: firstImage != null
-                ? Image.file(File(firstImage))
-                : null,
-            title: Text(report.issue),
-            subtitle: Text(report.location),
-            onTap: () => _showReportDetails(report),
+          return Dismissible(
+            key: Key(report.id.toString()),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Icon(Icons.delete, color: Colors.white),
+            ),
+            onDismissed: (direction) {
+              _deleteReport(report);
+            },
+            confirmDismiss: (direction) async {
+              return await showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text("Confirm"),
+                    content: const Text(
+                        "Are you sure you wish to delete this report?"),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text("CANCEL"),
+                      ),
+                      TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text("DELETE")),
+                    ],
+                  );
+                },
+              );
+            },
+            child: ListTile(
+              leading: firstImage != null
+                  ? Image.file(File(firstImage))
+                  : null,
+              title: Text(report.issue),
+              subtitle: Text(report.location),
+              onTap: () => _showReportDetails(report),
+            ),
           );
         },
       ),
@@ -133,18 +168,37 @@ class _HomeScreenState extends State<HomeScreen> {
       if (report.photoPath!.startsWith('[')) {
         try {
           final List<dynamic> imagePaths = jsonDecode(report.photoPath!);
-          imageWidgets = imagePaths
-              .map((path) => Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Image.file(File(path as String),
-                        width: 100, height: 100, fit: BoxFit.cover),
-                  ))
-              .toList();
+          imageWidgets = imagePaths.map((path) {
+            final imagePath = path as String;
+            return Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          FullScreenImageScreen(imagePath: imagePath),
+                    ),
+                  );
+                },
+                child: Hero(
+                  tag: imagePath,
+                  child: Image.file(
+                    File(imagePath),
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            );
+          }).toList();
         } catch (e) {
-          imageWidgets.add(Image.file(File(report.photoPath!)));
+          imageWidgets.add(_buildFullImage(report.photoPath!));
         }
       } else {
-        imageWidgets.add(Image.file(File(report.photoPath!)));
+        imageWidgets.add(_buildFullImage(report.photoPath!));
       }
     }
 
@@ -210,6 +264,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildFullImage(String imagePath) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FullScreenImageScreen(imagePath: imagePath),
+          ),
+        );
+      },
+      child: Hero(
+        tag: imagePath,
+        child: Image.file(
+          File(imagePath),
+          width: 100,
+          height: 100,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
   Future<void> _navigateToReportScreen() async {
     final result = await Navigator.push(
       context,
@@ -245,6 +321,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await _dbService.insertReport(newReport);
     _loadReports(currentProject?.id);
+  }
+
+  Future<void> _deleteReport(Report report) async {
+    await _dbService.deleteReport(report.id.toString());
+    _loadReports(_currentProjectId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Report deleted')),
+    );
   }
 
   Future<void> _generateReport() async {
