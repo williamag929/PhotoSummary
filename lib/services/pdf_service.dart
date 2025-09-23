@@ -8,7 +8,7 @@ import '../models/report.dart';
 import 'dart:convert';
 
 class PdfService {
-  Future<File> generatePdf(List<Report> reports) async {
+  Future<File> generatePdf(List<Report> reports, String projectName) async {
     final pdf = pw.Document();
     final String date = DateFormat.yMMMMd().format(DateTime.now());
 
@@ -17,7 +17,7 @@ class PdfService {
         header: (pw.Context context) {
           return pw.Header(
             level: 0,
-            child: pw.Text('BuildRight Construction - Daily Site Report - Project 1042 - $date'),
+            child: pw.Text('BuildRight Construction - Daily Site Report - $projectName - $date'),
           );
         },
         build: (pw.Context context) {
@@ -66,8 +66,18 @@ class PdfService {
       ),
     );
 
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/example.pdf");
+    final output = await getApplicationDocumentsDirectory();
+    final formattedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final safeProjectName = projectName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+    final baseFileName = "${output.path}/report_${safeProjectName}_$formattedDate";
+    
+    String finalPath = "$baseFileName.pdf";
+    int version = 1;
+    while (await File(finalPath).exists()) {
+      finalPath = "${baseFileName}_v${version++}.pdf";
+    }
+
+    final file = File(finalPath);
     await file.writeAsBytes(await pdf.save());
     return file;
   }

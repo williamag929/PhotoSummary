@@ -21,6 +21,7 @@ class _ReportScreenState extends State<ReportScreen> {
   List<XFile> _imageFiles = [];
   bool _isTyping = false;
   final TextEditingController _textEditingController = TextEditingController();
+  String _textBeforeListen = '';
 
   @override
   void initState() {
@@ -32,9 +33,8 @@ class _ReportScreenState extends State<ReportScreen> {
     _initializeControllerFuture = _controller.initialize();
     _speech = stt.SpeechToText();
     _textEditingController.addListener(() {
-      setState(() {
-        _text = _textEditingController.text;
-      });
+      // No need to call setState here as the TextField will rebuild itself.
+      _text = _textEditingController.text;
     });
   }
 
@@ -42,6 +42,7 @@ class _ReportScreenState extends State<ReportScreen> {
   void dispose() {
     _controller.dispose();
     _textEditingController.dispose();
+    _speech.cancel();
     super.dispose();
   }
 
@@ -56,6 +57,9 @@ class _ReportScreenState extends State<ReportScreen> {
             onPressed: () {
               setState(() {
                 _isTyping = !_isTyping;
+                if (_isListening) {
+                  _listen(); // Stop listening if switching to keyboard
+                }
               });
             },
           )
@@ -98,20 +102,27 @@ class _ReportScreenState extends State<ReportScreen> {
                     children: [
                       if (_isTyping)
                         Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: TextField(
                             controller: _textEditingController,
+                            maxLines: 3,
                             style: TextStyle(color: Colors.white, fontSize: 18),
                             decoration: InputDecoration(
                               hintText: 'Enter report details...',
                               hintStyle: TextStyle(color: Colors.white70),
+                              border: OutlineInputBorder(),
                             ),
                           ),
                         )
                       else
-                        Text(
-                          _text,
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          color: Colors.black54,
+                          child: Text(
+                            _text,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
                         ),
                       SizedBox(height: 20),
                       Row(
@@ -126,7 +137,7 @@ class _ReportScreenState extends State<ReportScreen> {
                             FloatingActionButton(
                               heroTag: 'mic_fab',
                               onPressed: _listen,
-                              child: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                              child: Icon(_isListening ? Icons.pause : Icons.mic),
                             ),
                           FloatingActionButton(
                             heroTag: 'check_fab',
@@ -168,11 +179,16 @@ class _ReportScreenState extends State<ReportScreen> {
       );
       if (available) {
         setState(() => _isListening = true);
+        _textBeforeListen = _text; // Save current text
         _speech.listen(
           onResult: (val) => setState(() {
-            _text = val.recognizedWords;
+            _text = _textBeforeListen + (_textBeforeListen.isNotEmpty ? ' ' : '') + val.recognizedWords;
+            _textEditingController.text = _text;
+            _textEditingController.selection = TextSelection.fromPosition(TextPosition(offset: _textEditingController.text.length));
           }),
           listenFor: Duration(minutes: 5),
+          partialResults: true,
+          cancelOnError: true,
         );
       }
     } else {
@@ -182,14 +198,15 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _createReport() {
-    if (_imageFiles.isNotEmpty && _text.isNotEmpty) {
+    final reportText = _isTyping ? _textEditingController.text : _text;
+    if (_imageFiles.isNotEmpty && reportText.isNotEmpty) {
       Navigator.pop(context, {
         'images': _imageFiles.map((e) => e.path).toList(),
-        'text': _text
+        'text': reportText,
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please take a picture and add a description.')),
+        SnackBar(content: Text('Please take at least one picture and provide a description.')),
       );
     }
   }

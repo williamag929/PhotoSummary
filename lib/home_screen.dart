@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: Icon(Icons.picture_as_pdf),
-            onPressed: _generateReport,
+            onPressed: () => _generateReport(currentProject?.name ?? "Unknown Project"),
           ),
         ],
       ),
@@ -149,12 +149,33 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'home_fab',
-        child: Icon(Icons.add_a_photo),
-        onPressed: _navigateToReportScreen,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: 'home_fab',
+            child: Icon(Icons.add_a_photo),
+            onPressed: _navigateToReportScreen,
+          ),
+          SizedBox(height: 16),
+          FloatingActionButton(
+            heroTag: 'test_ai_fab',
+            backgroundColor: Colors.orange,
+            child: Icon(Icons.science),
+            onPressed: _runAITest,
+          ),
+        ],
       ),
     );
+  }
+
+  // Temporary function to test AI integration.
+  void _runAITest() {
+    final String sampleText = 
+        "This is a test memo. The issue is a cracked window on the second floor, room 205. This needs to be fixed by the glazier, Tom. Please schedule it for next Monday.";
+    
+    // Pass an empty list for imagePaths as this is a text-only test.
+    _createNewReport([], sampleText);
   }
 
   void _showReportDetails(Report report) {
@@ -306,21 +327,56 @@ class _HomeScreenState extends State<HomeScreen> {
     final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final currentProject = projectProvider.currentProject;
 
-    final newReport = Report(
-      id: DateTime.now().toString(),
-      date: DateTime.now(),
-      photoPath: jsonEncode(imagePaths),
-      section: "Electrical",
-      issue: transcribedText,
-      location: "",
-      details: "",
-      actionRequired: "",
-      assignedTo: "",
-      projectId: currentProject?.id,
+    // Show a loading indicator while the AI is processing.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("AI is processing..."),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
-    await _dbService.insertReport(newReport);
-    _loadReports(currentProject?.id);
+    try {
+      // Call the AI service to process the transcribed text.
+      final StructuredReport structuredReport =
+          await _aiService.processTranscribedText(transcribedText);
+
+      final newReport = Report(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        date: DateTime.now(),
+        photoPath: jsonEncode(imagePaths),
+        section: "General", // You might want to make this dynamic later
+        issue: structuredReport.issue,
+        location: structuredReport.location,
+        details: structuredReport.details,
+        actionRequired: "", // This can be derived or managed separately
+        assignedTo: structuredReport.assignedTo,
+        projectId: currentProject?.id,
+      );
+
+      await _dbService.insertReport(newReport);
+      _loadReports(currentProject?.id);
+    } catch (e) {
+      // Handle any errors from the AI service.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error processing report: $e')),
+      );
+    } finally {
+      // Hide the loading indicator.
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _deleteReport(Report report) async {
@@ -331,8 +387,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _generateReport() async {
-    final pdfFile = await _pdfService.generatePdf(_reports);
+  Future<void> _generateReport(String projectName) async {
+    final pdfFile = await _pdfService.generatePdf(_reports, projectName);
     await OpenFile.open(pdfFile.path);
   }
 }
