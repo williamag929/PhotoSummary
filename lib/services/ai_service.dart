@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // A simple data class for the structured report data.
 class StructuredReport {
@@ -29,7 +28,7 @@ class StructuredReport {
 }
 
 class AIService {
-  final String? _apiKey = dotenv.env['Google_AI_API_KEY'];
+  final String? _apiKey = 'AIzaSyAow9z3t5HMbjqzm5tQAeEMH8UEhtSTXWw';
   final String _apiUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
