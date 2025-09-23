@@ -21,7 +21,7 @@ class _ReportScreenState extends State<ReportScreen> {
   List<XFile> _imageFiles = [];
   bool _isTyping = false;
   final TextEditingController _textEditingController = TextEditingController();
-  String _textBeforeListen = '';
+   String _textBeforeListen = '';
 
   @override
   void initState() {
@@ -33,8 +33,9 @@ class _ReportScreenState extends State<ReportScreen> {
     _initializeControllerFuture = _controller.initialize();
     _speech = stt.SpeechToText();
     _textEditingController.addListener(() {
-      // No need to call setState here as the TextField will rebuild itself.
-      _text = _textEditingController.text;
+      setState(() {
+        _text = _textEditingController.text;
+      });
     });
   }
 
@@ -58,7 +59,7 @@ class _ReportScreenState extends State<ReportScreen> {
               setState(() {
                 _isTyping = !_isTyping;
                 if (_isListening) {
-                  _listen(); // Stop listening if switching to keyboard
+                  _stopListen();
                 }
               });
             },
@@ -136,7 +137,7 @@ class _ReportScreenState extends State<ReportScreen> {
                           if (!_isTyping)
                             FloatingActionButton(
                               heroTag: 'mic_fab',
-                              onPressed: _listen,
+                              onPressed: _isListening ? _stopListen : _startListen,
                               child: Icon(_isListening ? Icons.pause : Icons.mic),
                             ),
                           FloatingActionButton(
@@ -171,30 +172,37 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  void _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
+  void _startListen() async {
+    bool available = await _speech.initialize(
+      onStatus: (val) => print('onStatus: $val'),
+      onError: (val) => print('onError: $val'),
+    );
+    if (available) {
+      setState(() => _isListening = true);
+      _textBeforeListen = _text;
+      _speech.listen(
+        onResult: (val) => setState(() {
+          //_text = val.recognizedWords;
+          _text = _textBeforeListen + (_textBeforeListen.isNotEmpty ? ' ' : '') + val.recognizedWords;
+          if (val.hasConfidenceRating && val.confidence > 0) {
+            // Handle confidence rating if needed
+          }
+        }),
+        listenFor: Duration(minutes: 5),
+        pauseFor: Duration(seconds: 5),
+        partialResults: true,
+        onSoundLevelChange: (level) => print('sound level $level'),
+        cancelOnError: true,
+        listenMode: stt.ListenMode.confirmation,
       );
-      if (available) {
-        setState(() => _isListening = true);
-        _textBeforeListen = _text; // Save current text
-        _speech.listen(
-          onResult: (val) => setState(() {
-            _text = _textBeforeListen + (_textBeforeListen.isNotEmpty ? ' ' : '') + val.recognizedWords;
-            _textEditingController.text = _text;
-            _textEditingController.selection = TextSelection.fromPosition(TextPosition(offset: _textEditingController.text.length));
-          }),
-          listenFor: Duration(minutes: 5),
-          partialResults: true,
-          cancelOnError: true,
-        );
-      }
     } else {
-      setState(() => _isListening = false);
-      _speech.stop();
+      print("The user has denied the use of speech recognition.");
     }
+  }
+
+  void _stopListen() {
+    _speech.stop();
+    setState(() => _isListening = false);
   }
 
   void _createReport() {

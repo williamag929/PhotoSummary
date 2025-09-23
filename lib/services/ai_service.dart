@@ -1,7 +1,7 @@
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../models/report.dart';
 
 // A simple data class for the structured report data.
 class StructuredReport {
@@ -41,7 +41,7 @@ class AIService {
 
     try {
       final response = await http.post(
-        Uri.parse('$_apiUrl?key=$_apiKey'),
+        Uri.parse('{_apiUrl}?key={_apiKey}'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -67,13 +67,13 @@ class AIService {
           return '{"error": "Invalid response structure from API."}';
         }
       } else {
-        print("API Error: ${response.statusCode}");
-        print("API Response: ${response.body}");
-        return '{"error": "Failed to communicate with AI service. Status code: ${response.statusCode}"}';
+        print("API Error: {response.statusCode}");
+        print("API Response: {response.body}");
+        return '{"error": "Failed to communicate with AI service. Status code: {response.statusCode}}"';
       }
     } catch (e) {
-      print("Error calling AI service: $e");
-      return '{"error": "An exception occurred while contacting the AI service: $e"}';
+      print("Error calling AI service: {e}");
+      return '{"error": "An exception occurred while contacting the AI service: {e}}"';
     }
   }
 
@@ -87,7 +87,7 @@ class AIService {
   // Queries for specific project specifications.
   Future<String> getSpec(String query) async {
     String prompt =
-        "You are an expert on construction project specifications. Answer the following question based on standard specifications. If you don't know, say you couldn't find the specification.\n\nQuestion: $query";
+        "You are an expert on construction project specifications. Answer the following question based on standard specifications. If you don't know, say you couldn't find the specification.\n\nQuestion: {query}";
 
     String response = await _callGenerativeApi(prompt);
     return response;
@@ -117,9 +117,26 @@ class AIService {
       final Map<String, dynamic> jsonResponse = json.decode(jsonString);
       return StructuredReport.fromJson(jsonResponse);
     } catch (e) {
-      print("Error decoding JSON from AI: $e");
-      print("Received string: $jsonString");
+      print("Error decoding JSON from AI: {e}");
+      print("Received string: {jsonString}");
       return StructuredReport(issue: "Failed to parse AI response.", details: jsonString);
     }
+  }
+
+  Future<String> generateReportSummary(List<Report> reports) async {
+    String reportsText = reports.map((r) => "Issue: {r.issue}, Location: {r.location}, Details: {r.details}, Assigned to: {r.assignedTo}").join("\n");
+
+    String prompt = """
+      You are an AI assistant for a construction site reporting app.
+      Your task is to create a concise summary of the daily reports.
+      The user will provide a list of reports. Analyze them and return a short summary in bullet points.
+      Focus on the most important issues, progress, and safety observations.
+
+      Here are the reports:
+      "$reportsText"
+    """;
+
+    String summary = await _callGenerativeApi(prompt);
+    return summary;
   }
 }
