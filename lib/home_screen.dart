@@ -8,11 +8,13 @@ import './models/report.dart';
 import './services/database_service.dart';
 import './services/pdf_service.dart';
 import './services/ai_service.dart';
+import './services/settings_service.dart';
 import './report_screen.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
 import './providers/project_provider.dart';
 import './screens/project_screen.dart';
+import './screens/settings_screen.dart';
 import './screens/full_screen_image_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final DatabaseService _dbService = DatabaseService();
   final PdfService _pdfService = PdfService();
   final AIService _aiService = AIService();
+  final SettingsService _settingsService = SettingsService();
   List<Report> _reports = [];
   int? _currentProjectId;
 
@@ -82,6 +85,15 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.picture_as_pdf),
             onPressed: () => _generateReport(currentProject?.name ?? "Unknown Project"),
+          ),
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -326,56 +338,71 @@ class _HomeScreenState extends State<HomeScreen> {
       List<String> imagePaths, String transcribedText) async {
     final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
     final currentProject = projectProvider.currentProject;
+    final isAiEnabled = await _settingsService.isAiSummaryEnabled();
 
-    // Show a loading indicator while the AI is processing.
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 20),
-                Text("AI is processing..."),
-              ],
+    if (isAiEnabled) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("AI is processing..."),
+                ],
+              ),
             ),
-          ),
+          );
+        },
+      );
+
+      try {
+        final StructuredReport structuredReport =
+            await _aiService.processTranscribedText(transcribedText);
+
+        final newReport = Report(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          date: DateTime.now(),
+          photoPath: jsonEncode(imagePaths),
+          section: "General",
+          issue: structuredReport.issue,
+          location: structuredReport.location,
+          details: structuredReport.details,
+          actionRequired: "",
+          assignedTo: structuredReport.assignedTo,
+          projectId: currentProject?.id,
         );
-      },
-    );
 
-    try {
-      // Call the AI service to process the transcribed text.
-      final StructuredReport structuredReport =
-          await _aiService.processTranscribedText(transcribedText);
-
+        await _dbService.insertReport(newReport);
+        _loadReports(currentProject?.id);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error processing report: $e')),
+        );
+      } finally {
+        Navigator.of(context).pop();
+      }
+    } else {
       final newReport = Report(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         date: DateTime.now(),
         photoPath: jsonEncode(imagePaths),
-        section: "General", // You might want to make this dynamic later
-        issue: structuredReport.issue,
-        location: structuredReport.location,
-        details: structuredReport.details,
-        actionRequired: "", // This can be derived or managed separately
-        assignedTo: structuredReport.assignedTo,
+        section: "General",
+        issue: "Voice Note Report",
+        location: "",
+        details: transcribedText,
+        actionRequired: "",
+        assignedTo: "",
         projectId: currentProject?.id,
       );
 
       await _dbService.insertReport(newReport);
       _loadReports(currentProject?.id);
-    } catch (e) {
-      // Handle any errors from the AI service.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error processing report: $e')),
-      );
-    } finally {
-      // Hide the loading indicator.
-      Navigator.of(context).pop();
     }
   }
 
