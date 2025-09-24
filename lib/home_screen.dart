@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
 import 'package:provider/provider.dart';
@@ -160,12 +161,20 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget? _buildFloatingActionButton() {
+    // The camera plugin doesn't support desktop, so hide the FAB.
+    if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
+      return FloatingActionButton(
         heroTag: 'home_fab',
         child: Icon(Icons.add_a_photo),
         onPressed: _navigateToReportScreen,
-      ),
-    );
+      );
+    }
+    return null;
   }
 
   void _showReportDetails(Report report) {

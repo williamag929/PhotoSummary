@@ -7,21 +7,28 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' as sqflite_ffi;
 
-import 'package:myapp/main.dart';
+import 'package:photosummary/main.dart';
 
 void main() {
-  // Initialize ffi implementation
-  sqfliteFfiInit();
-  // Set global factory
-  databaseFactory = databaseFactoryFfi;
+  // It's good practice to initialize the test binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() {
+    // Initialize FFI for sqflite for tests running on desktop.
+    sqflite_ffi.sqfliteFfiInit();
+    // Use the FFI factory for all database operations in tests.
+    sqflite_ffi.databaseFactory = sqflite_ffi.databaseFactoryFfi;
+  });
 
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+    await tester.pumpWidget(const MyApp());
 
     // Verify that our app bar title is present.
     expect(find.text('SiteScribe'), findsOneWidget);
+    // Also, ensure no exceptions were thrown.
+    expect(tester.takeException(), isNull);
   });
 }
