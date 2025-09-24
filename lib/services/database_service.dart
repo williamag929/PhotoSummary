@@ -1,4 +1,3 @@
-
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/report.dart';
@@ -68,5 +67,17 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<List<Report>> getReportsByDate(DateTime date) async {
+    final db = await database;
+    final startOfDay = DateTime(date.year, date.month, date.day).toIso8601String();
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
+    final maps = await db.query(
+      'reports',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [startOfDay, endOfDay],
+    );
+    return List.generate(maps.length, (i) => Report.fromMap(maps[i]));
   }
 }
