@@ -27,10 +27,31 @@ class StructuredReport {
   }
 }
 
+class AISummary {
+  final int totalIssues;
+  final int safetyIssues;
+  final String summaryText;
+
+  AISummary({
+    this.totalIssues = 0,
+    this.safetyIssues = 0,
+    this.summaryText = "",
+  });
+
+  factory AISummary.fromJson(Map<String, dynamic> json) {
+    return AISummary(
+      totalIssues: json['total_issues'] ?? 0,
+      safetyIssues: json['safety_issues'] ?? 0,
+      summaryText: json['summary_text'] ?? '',
+    );
+  }
+}
+
 class AIService {
   final String? _apiKey = 'AIzaSyAow9z3t5HMbjqzm5tQAeEMH8UEhtSTXWw';
   final String _apiUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
   // Generic function to call the generative AI API.
   Future<String> _callGenerativeApi(String prompt) async {
     if (_apiKey == null) {
@@ -123,20 +144,59 @@ class AIService {
     }
   }
 
-  Future<String> generateReportSummary(List<Report> reports) async {
+  Future<AISummary> generateReportSummary(List<Report> reports) async {
     String reportsText = reports.map((r) => "Issue: ${r.issue}, Location: ${r.location}, Details: ${r.details}, Assigned to: ${r.assignedTo}").join("\n");
 
     String prompt = """
       You are an AI assistant for a construction site reporting app.
       Your task is to create a concise summary of the daily reports.
-      The user will provide a list of reports. Analyze them and return a short summary in bullet points.
-      Focus on the most important issues, progress, and safety observations.
+      The user will provide a list of reports. Analyze them and return a JSON object with the following fields:
+      - \"total_issues\": The total number of issues reported.
+      - \"safety_issues\": The number of issues specifically related to safety.
+      - \"summary_text\": A short summary of the most important issues, progress, and observations.
+
+      If a field is not applicable, return 0 for the counts and an empty string for the summary.
+      Do not add any extra commentary. Only return the JSON object.
 
       Here are the reports:
-      "$reportsText"
+      \"$reportsText\"
     """;
 
-    String summary = await _callGenerativeApi(prompt);
-    return summary;
+    String jsonString = await _callGenerativeApi(prompt);
+
+    try {
+      final Map<String, dynamic> jsonResponse = json.decode(jsonString);
+      return AISummary.fromJson(jsonResponse);
+    } catch (e) {
+      print("Error decoding JSON from AI summary: $e");
+      print("Received string for summary: $jsonString");
+      return AISummary(summaryText: "Failed to parse AI summary.");
+    }
+  }
+
+  Future<List<String>> checkForSafetyViolations(Report report) async {
+    String reportText = "Issue: ${report.issue}, Location: ${report.location}, Details: ${report.details}";
+
+    String prompt = """
+      You are an AI assistant specializing in construction site safety.
+      Your task is to analyze a report and identify potential safety violations.
+      Based on the report, provide a list of recommendations to mitigate the risks.
+      If no safety violations are found, return an empty list.
+      Return the recommendations as a JSON array of strings.
+
+      Here is the report:
+      \"$reportText\"
+    """;
+
+    String jsonString = await _callGenerativeApi(prompt);
+
+    try {
+      final List<dynamic> jsonResponse = json.decode(jsonString);
+      return jsonResponse.map((e) => e.toString()).toList();
+    } catch (e) {
+      print("Error decoding JSON from AI safety check: $e");
+      print("Received string for safety check: $jsonString");
+      return ["No recommendations found for this note."];
+    }
   }
 }

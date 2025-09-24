@@ -393,7 +393,54 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _generateReport(String projectName) async {
-    final pdfFile = await _pdfService.generatePdf(_reports, projectName);
+    final isAiEnabled = await _settingsService.isAiSummaryEnabled();
+    AISummary? aiSummary;
+    Map<String, List<String>> safetyViolations = {};
+
+    if (isAiEnabled) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("AI is summarizing..."),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      try {
+        aiSummary = await _aiService.generateReportSummary(_reports);
+        for (var report in _reports) {
+          final violations = await _aiService.checkForSafetyViolations(report);
+          if (violations.isNotEmpty) {
+            safetyViolations[report.id.toString()] = violations;
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating AI summary: $e')),
+        );
+      } finally {
+        Navigator.of(context).pop(); // Close the progress dialog
+      }
+    }
+
+    final pdfFile = await _pdfService.generatePdf(
+      _reports,
+      projectName,
+      aiSummary: aiSummary,
+      safetyViolations: safetyViolations,
+    );
     await OpenFile.open(pdfFile.path);
   }
 }
