@@ -16,11 +16,13 @@ import './providers/project_provider.dart';
 import './screens/project_screen.dart';
 import './screens/settings_screen.dart';
 import './screens/full_screen_image_screen.dart';
+import './screens/calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final CameraDescription camera;
+  final DateTime? selectedDate;
 
-  const HomeScreen({Key? key, required this.camera}) : super(key: key);
+  const HomeScreen({Key? key, required this.camera, this.selectedDate}) : super(key: key);
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -33,32 +35,57 @@ class _HomeScreenState extends State<HomeScreen> {
   final SettingsService _settingsService = SettingsService();
   List<Report> _reports = [];
   int? _currentProjectId;
+  bool _isCalendarViewEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-    projectProvider.fetchProjects().then((_) {
-      if (projectProvider.currentProject != null) {
-        _loadReports(projectProvider.currentProject!.id);
-      } else {
-        _loadReports(null);
-      }
+    _loadSettings();
+    if (widget.selectedDate != null) {
+      _loadReportsForDate(widget.selectedDate!);
+    } else {
+      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+      projectProvider.fetchProjects().then((_) {
+        if (projectProvider.currentProject != null) {
+          _loadReports(projectProvider.currentProject!.id);
+        } else {
+          _loadReports(null);
+        }
+      });
+    }
+  }
+
+  Future<void> _loadSettings() async {
+    final isCalendarEnabled = await _settingsService.isCalendarViewEnabled();
+    if (!mounted) return;
+    setState(() {
+      _isCalendarViewEnabled = isCalendarEnabled;
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final projectProvider = Provider.of<ProjectProvider>(context);
-    if (_currentProjectId != projectProvider.currentProject?.id) {
-      _currentProjectId = projectProvider.currentProject?.id;
-      _loadReports(_currentProjectId);
+    if (widget.selectedDate == null) {
+      final projectProvider = Provider.of<ProjectProvider>(context);
+      if (_currentProjectId != projectProvider.currentProject?.id) {
+        _currentProjectId = projectProvider.currentProject?.id;
+        _loadReports(_currentProjectId);
+      }
     }
   }
 
   Future<void> _loadReports(int? projectId) async {
     final reports = await _dbService.getReports(projectId: projectId);
+    if (!mounted) return;
+    setState(() {
+      _reports = reports;
+    });
+  }
+
+  Future<void> _loadReportsForDate(DateTime date) async {
+    final reports = await _dbService.getReportsByDate(date);
+    if (!mounted) return;
     setState(() {
       _reports = reports;
     });
@@ -71,30 +98,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentProject?.name ?? 'JobLog'),
+        title: Text(widget.selectedDate != null ? DateFormat.yMMMMd().format(widget.selectedDate!) : currentProject?.name ?? 'JobLog'),
         actions: [
+          if (widget.selectedDate == null)
+            IconButton(
+              icon: const Icon(Icons.folder),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProjectScreen()),
+                );
+              },
+            ),
+          if (_isCalendarViewEnabled && widget.selectedDate == null)
+            IconButton(
+              icon: const Stack(
+                children: [
+                  Icon(Icons.calendar_today),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Icon(Icons.star, color: Colors.yellow, size: 12),
+                  ),
+                ],
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CalendarScreen(camera: widget.camera, projectId: _currentProjectId)),
+                );
+              },
+            ),
           IconButton(
-            icon: Icon(Icons.folder),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProjectScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.picture_as_pdf),
+            icon: const Icon(Icons.picture_as_pdf),
             onPressed: () => _generateReport(currentProject?.name ?? "Unknown Project"),
           ),
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
-              );
-            },
-          ),
+          if (widget.selectedDate == null)
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsScreen()),
+                ).then((_) => _loadSettings());
+              },
+            ),
         ],
       ),
       body: ListView.builder(
@@ -123,8 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
             background: Container(
               color: Colors.red,
               alignment: Alignment.centerRight,
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-              child: Icon(Icons.delete, color: Colors.white),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
             onDismissed: (direction) {
               _deleteReport(report);
@@ -170,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
       return FloatingActionButton(
         heroTag: 'home_fab',
-        child: Icon(Icons.add_a_photo),
+        child: const Icon(Icons.add_a_photo),
         onPressed: _navigateToReportScreen,
       );
     }
@@ -227,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AlertDialog(
         title: TextFormField(
           controller: issueController,
-          decoration: InputDecoration(labelText: 'Report'),
+          decoration: const InputDecoration(labelText: 'Report'),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -241,26 +289,26 @@ class _HomeScreenState extends State<HomeScreen> {
               Text('Date: ${DateFormat.yMd().add_jm().format(report.date)}'),
               TextFormField(
                 controller: locationController,
-                decoration: InputDecoration(labelText: 'Location'),
+                decoration: const InputDecoration(labelText: 'Location'),
               ),
               TextFormField(
                 controller: detailsController,
-                decoration: InputDecoration(labelText: 'Details'),
+                decoration: const InputDecoration(labelText: 'Details'),
               ),
               TextFormField(
                 controller: assignedToController,
-                decoration: InputDecoration(labelText: 'Assigned To'),
+                decoration: const InputDecoration(labelText: 'Assigned To'),
               ),
             ],
           ),
         ),
         actions: [
           TextButton(
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
             onPressed: () => Navigator.of(context).pop(),
           ),
           TextButton(
-            child: Text('Save'),
+            child: const Text('Save'),
             onPressed: () async {
               final updatedReport = Report(
                 id: report.id,
@@ -275,8 +323,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 projectId: report.projectId,
               );
               await _dbService.insertReport(updatedReport);
-              _loadReports(report.projectId);
-              Navigator.of(context).pop();
+              if (widget.selectedDate != null) {
+                _loadReportsForDate(widget.selectedDate!);
+              } else {
+                _loadReports(report.projectId);
+              }
+              if (mounted) {
+                Navigator.of(context).pop();
+              }
             },
           ),
         ],
@@ -338,9 +392,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 20),
-                  Text("AI is processing..."),
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 20),
+                  const Text("AI is processing..."),
                 ],
               ),
             ),
@@ -366,13 +420,21 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         await _dbService.insertReport(newReport);
-        _loadReports(currentProject?.id);
+        if (widget.selectedDate != null) {
+          _loadReportsForDate(widget.selectedDate!);
+        } else {
+          _loadReports(currentProject?.id);
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error processing report: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error processing report: $e')),
+          );
+        }
       } finally {
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       }
     } else {
       final newReport = Report(
@@ -389,20 +451,80 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       await _dbService.insertReport(newReport);
-      _loadReports(currentProject?.id);
+      if (widget.selectedDate != null) {
+        _loadReportsForDate(widget.selectedDate!);
+      } else {
+        _loadReports(currentProject?.id);
+      }
     }
   }
 
   Future<void> _deleteReport(Report report) async {
     await _dbService.deleteReport(report.id.toString());
-    _loadReports(_currentProjectId);
+    if (widget.selectedDate != null) {
+      _loadReportsForDate(widget.selectedDate!);
+    } else {
+      _loadReports(_currentProjectId);
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Report deleted')),
+      const SnackBar(content: Text('Report deleted')),
     );
   }
 
   Future<void> _generateReport(String projectName) async {
-    final pdfFile = await _pdfService.generatePdf(_reports, projectName);
+    final isAiEnabled = await _settingsService.isAiSummaryEnabled();
+    AISummary? aiSummary;
+    Map<String, List<String>> safetyViolations = {};
+
+    if (isAiEnabled) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(width: 20),
+                  const Text("AI is summarizing..."),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      try {
+        aiSummary = await _aiService.generateReportSummary(_reports);
+        for (var report in _reports) {
+          final violations = await _aiService.checkForSafetyViolations(report);
+          if (violations.isNotEmpty) {
+            safetyViolations[report.id.toString()] = violations;
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error generating AI summary: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close the progress dialog
+        }
+      }
+    }
+
+    final pdfFile = await _pdfService.generatePdf(
+      _reports,
+      projectName,
+      aiSummary: aiSummary,
+      safetyViolations: safetyViolations,
+    );
     await OpenFile.open(pdfFile.path);
   }
 }

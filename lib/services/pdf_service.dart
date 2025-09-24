@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -6,9 +5,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import '../models/report.dart';
 import 'dart:convert';
+import 'ai_service.dart';
 
 class PdfService {
-  Future<File> generatePdf(List<Report> reports, String projectName) async {
+  Future<File> generatePdf(List<Report> reports, String projectName, {AISummary? aiSummary, Map<String, List<String>>? safetyViolations}) async {
     final pdf = pw.Document();
     final String date = DateFormat.yMMMMd().format(DateTime.now());
 
@@ -22,13 +22,14 @@ class PdfService {
         },
         build: (pw.Context context) {
           return [
-            pw.Header(level: 1, text: 'Summary AI Generated'),
-            // In a real app, you'd generate this summary dynamically
-            pw.Bullet(text: 'General: Non-Conformance Issue'),
-            pw.Bullet(text: 'Safety: 0 Observation'),
-            //pw.Bullet(text: 'AI Generated: 1 Non-Conformance Issue (Conduit Spacing) assigned to Sparks Electrical.'),
-            //pw.Bullet(text: 'Plumbing: 2 Progress Photos (Riser installation complete).'),
-            //pw.Bullet(text: 'Safety: 1 Observation (Water on floor near stairwell) - Marked as resolved.'),
+            if (aiSummary != null)
+              pw.Header(level: 1, text: 'Summary AI Generated'),
+            if (aiSummary != null)
+              pw.Bullet(text: 'Total Notes: ${aiSummary.totalIssues}'),
+            if (aiSummary != null)
+              pw.Bullet(text: 'Safety Notes: ${aiSummary.safetyIssues}'),
+            if (aiSummary != null)
+              pw.Paragraph(text: aiSummary.summaryText),
             pw.Header(level: 1, text: 'Detailed Entries'),
             ...reports.map((report) {
               List<String> imagePaths = [];
@@ -59,6 +60,14 @@ class PdfService {
                   pw.Text('Location: ${report.location}'),
                   pw.Text('Details: ${report.details}'),
                   pw.Text('Section: ${report.section}'),
+                  if (safetyViolations != null && safetyViolations.containsKey(report.id.toString()))
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Header(level: 2, text: 'Safety Recommendations'),
+                        ...safetyViolations[report.id.toString()]!.map((v) => pw.Bullet(text: v)),
+                      ]
+                    ),
                   pw.Divider(),
                 ],
               );
