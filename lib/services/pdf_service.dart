@@ -17,16 +17,18 @@ class PdfService {
         header: (pw.Context context) {
           return pw.Header(
             level: 0,
-            child: pw.Text('BuildRight Construction - Daily Site Report - $projectName - $date'),
+            child: pw.Text('JobLog Smart Report - $projectName - $date'),
           );
         },
         build: (pw.Context context) {
           return [
-            pw.Header(level: 1, text: 'Summary'),
+            pw.Header(level: 1, text: 'Summary AI Generated'),
             // In a real app, you'd generate this summary dynamically
-            pw.Bullet(text: 'Electrical: 1 Non-Conformance Issue (Conduit Spacing) assigned to Sparks Electrical.'),
-            pw.Bullet(text: 'Plumbing: 2 Progress Photos (Riser installation complete).'),
-            pw.Bullet(text: 'Safety: 1 Observation (Water on floor near stairwell) - Marked as resolved.'),
+            pw.Bullet(text: 'General: Non-Conformance Issue'),
+            pw.Bullet(text: 'Safety: 0 Observation'),
+            //pw.Bullet(text: 'AI Generated: 1 Non-Conformance Issue (Conduit Spacing) assigned to Sparks Electrical.'),
+            //pw.Bullet(text: 'Plumbing: 2 Progress Photos (Riser installation complete).'),
+            //pw.Bullet(text: 'Safety: 1 Observation (Water on floor near stairwell) - Marked as resolved.'),
             pw.Header(level: 1, text: 'Detailed Entries'),
             ...reports.map((report) {
               List<String> imagePaths = [];
@@ -52,11 +54,11 @@ class PdfService {
                     }
                     return pw.Container(); // Return an empty container if image fails to load
                   }),
-                  pw.Text('Timestamp: ${DateFormat.yMd().add_jm().format(report.date)}'),
+                  pw.Text('Report: ${report.issue}'),
+                  pw.Text('Date: ${DateFormat.yMd().add_jm().format(report.date)}'),
                   pw.Text('Location: ${report.location}'),
                   pw.Text('Details: ${report.details}'),
                   pw.Text('Section: ${report.section}'),
-                  pw.Text('Issue: ${report.issue}'),
                   pw.Divider(),
                 ],
               );

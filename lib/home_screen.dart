@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -161,33 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: 'home_fab',
-            child: Icon(Icons.add_a_photo),
-            onPressed: _navigateToReportScreen,
-          ),
-          SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: 'test_ai_fab',
-            backgroundColor: Colors.orange,
-            child: Icon(Icons.science),
-            onPressed: _runAITest,
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
+        child: Icon(Icons.add_a_photo),
+        onPressed: _navigateToReportScreen,
       ),
     );
-  }
-
-  // Temporary function to test AI integration.
-  void _runAITest() {
-    final String sampleText = 
-        "This is a test memo. The issue is a cracked window on the second floor, room 205. This needs to be fixed by the glazier, Tom. Please schedule it for next Monday.";
-    
-    // Pass an empty list for imagePaths as this is a text-only test.
-    _createNewReport([], sampleText);
   }
 
   void _showReportDetails(Report report) {
@@ -240,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AlertDialog(
         title: TextFormField(
           controller: issueController,
-          decoration: InputDecoration(labelText: 'Issue'),
+          decoration: InputDecoration(labelText: 'Report'),
         ),
         content: SingleChildScrollView(
           child: Column(
