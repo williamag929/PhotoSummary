@@ -174,12 +174,12 @@ class _ReportScreenState extends State<ReportScreen> {
                               onPressed: analyzeSafetyImage,
                               child: const Icon(Icons.security),
                             ),
-                          if (_isAiSummaryEnabled)
-                            FloatingActionButton(
-                              heroTag: 'quick_check_fab',
-                              onPressed: quickCheck,
-                              child: const Icon(Icons.flash_on),
-                            ),
+                          //if (_isAiSummaryEnabled)
+                          //  FloatingActionButton(
+                          //    heroTag: 'quick_check_fab',
+                          //    onPressed: quickCheck,
+                          //    child: const Icon(Icons.flash_on),
+                          //  ),
                           if (_isAiSummaryEnabled)
                             FloatingActionButton(
                               heroTag: 'auto_report_fab',

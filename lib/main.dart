@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,7 +23,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ProjectProvider(),
       child: MaterialApp(
-        title: 'SiteScribe',
+        title: 'Job Log Smart',
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),

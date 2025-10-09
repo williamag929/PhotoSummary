@@ -18,7 +18,7 @@
 - [] business allow edit real-time preview pdf report
 - [] business allow include logo
 - [] pro level allow archive projects
-- [] pro allow save report on calendar view like daily report
+- [ok] pro allow save report on calendar view like daily report
 - [] business allow level profiles (admin, user, guess) 
 ## Bugs
 
