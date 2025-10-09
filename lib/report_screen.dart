@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:io';
+
+import '../models/report.dart';
+import '../services/ai_service.dart';
+import '../services/settings_service.dart';
 
 class ReportScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -21,7 +26,11 @@ class _ReportScreenState extends State<ReportScreen> {
   final List<XFile> _imageFiles = [];
   bool _isTyping = false;
   final TextEditingController _textEditingController = TextEditingController();
-   String _textBeforeListen = '';
+  String _textBeforeListen = '';
+  bool _isLoading = false;
+  ImageAnalysisResult? _analysisResult;
+  bool _isAiSummaryEnabled = true;
+  final SettingsService _settingsService = SettingsService();
 
   @override
   void initState() {
@@ -35,6 +44,11 @@ class _ReportScreenState extends State<ReportScreen> {
     _textEditingController.addListener(() {
       setState(() {
         _text = _textEditingController.text;
+      });
+    });
+    _settingsService.isAiSummaryEnabled().then((value) {
+      setState(() {
+        _isAiSummaryEnabled = value;
       });
     });
   }
@@ -73,6 +87,10 @@ class _ReportScreenState extends State<ReportScreen> {
             return Stack(
               children: [
                 CameraPreview(_controller),
+                if (_isLoading)
+                  const Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 Positioned(
                   bottom: 150,
                   left: 0,
@@ -107,7 +125,8 @@ class _ReportScreenState extends State<ReportScreen> {
                           child: TextField(
                             controller: _textEditingController,
                             maxLines: 3,
-                            style: const TextStyle(color: Colors.white, fontSize: 18),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 18),
                             decoration: const InputDecoration(
                               hintText: 'Enter report details...',
                               hintStyle: TextStyle(color: Colors.white70),
@@ -117,12 +136,14 @@ class _ReportScreenState extends State<ReportScreen> {
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
                           color: Colors.black54,
                           child: Text(
                             _text,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white, fontSize: 18),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 18),
                           ),
                         ),
                       const SizedBox(height: 20),
@@ -137,14 +158,34 @@ class _ReportScreenState extends State<ReportScreen> {
                           if (!_isTyping)
                             FloatingActionButton(
                               heroTag: 'mic_fab',
-                              onPressed: _isListening ? _stopListen : _startListen,
-                              child: Icon(_isListening ? Icons.pause : Icons.mic),
+                              onPressed:
+                                  _isListening ? _stopListen : _startListen,
+                              child:
+                                  Icon(_isListening ? Icons.pause : Icons.mic),
                             ),
                           FloatingActionButton(
                             heroTag: 'check_fab',
                             onPressed: _createReport,
                             child: const Icon(Icons.check),
                           ),
+                          if (_isAiSummaryEnabled)
+                            FloatingActionButton(
+                              heroTag: 'safety_analysis_fab',
+                              onPressed: analyzeSafetyImage,
+                              child: const Icon(Icons.security),
+                            ),
+                          if (_isAiSummaryEnabled)
+                            FloatingActionButton(
+                              heroTag: 'quick_check_fab',
+                              onPressed: quickCheck,
+                              child: const Icon(Icons.flash_on),
+                            ),
+                          if (_isAiSummaryEnabled)
+                            FloatingActionButton(
+                              heroTag: 'auto_report_fab',
+                              onPressed: () => createReportFromPhoto("On-site"),
+                              child: const Icon(Icons.description),
+                            ),
                         ],
                       ),
                     ],
@@ -182,8 +223,9 @@ class _ReportScreenState extends State<ReportScreen> {
       _textBeforeListen = _text;
       _speech.listen(
         onResult: (val) => setState(() {
-          //_text = val.recognizedWords;
-          _text = _textBeforeListen + (_textBeforeListen.isNotEmpty ? ' ' : '') + val.recognizedWords;
+          _text = _textBeforeListen +
+              (_textBeforeListen.isNotEmpty ? ' ' : '') +
+              val.recognizedWords;
           if (val.hasConfidenceRating && val.confidence > 0) {
             // Handle confidence rating if needed
           }
@@ -215,8 +257,128 @@ class _ReportScreenState extends State<ReportScreen> {
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please take at least one picture and provide a description.')),
+        const SnackBar(
+            content: Text(
+                'Please take at least one picture and provide a description.')),
       );
+    }
+  }
+
+  Future<void> analyzeSafetyImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85, // Compress to reduce API cost
+    );
+
+    if (photo != null) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        AIService aiService = AIService();
+        ImageAnalysisResult result =
+            await aiService.analyzeImage(File(photo.path));
+
+        setState(() {
+          _analysisResult = result;
+          _isLoading = false;
+        });
+
+        // Display results
+        showResultsDialog(result);
+      } catch (e) {
+        print("Error: $e");
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void showResultsDialog(ImageAnalysisResult result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Safety Analysis'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Summary:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(result.summary),
+              SizedBox(height: 16),
+              if (result.hazards.isNotEmpty) ...[
+                Text('Hazards:', style: TextStyle(fontWeight: FontWeight.bold)),
+                ...result.hazards.map((h) => Text('• $h')),
+                SizedBox(height: 16),
+              ],
+              Text('OSHA Recommendations:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              ...result.oshaRecommendations.map((r) => Text('• $r')),
+              if (result.missingPPE.isNotEmpty) ...[
+                SizedBox(height: 16),
+                Text('Missing PPE:',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.red)),
+                ...result.missingPPE.map(
+                    (p) => Text('• $p', style: TextStyle(color: Colors.red))),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> quickCheck() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+
+    if (photo != null) {
+      AIService aiService = AIService();
+      Map<String, dynamic> quickResult =
+          await aiService.quickSafetyCheck(File(photo.path));
+
+      // Show quick results
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(quickResult['summary']),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  Future<void> createReportFromPhoto(String location) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+
+    if (photo != null) {
+      AIService aiService = AIService();
+      StructuredReport report = await aiService.createReportFromImage(
+        File(photo.path),
+        location,
+      );
+
+      // Use the report in your app
+      print('Issue: ${report.issue}');
+      print('Details: ${report.details}');
+      print('Assigned to: ${report.assignedTo}');
+      Navigator.pop(context, {
+        'images': [photo.path],
+        'text': report.details,
+        'issue': report.issue,
+        'assignedTo': report.assignedTo,
+      });
     }
   }
 }
