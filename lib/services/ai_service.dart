@@ -48,7 +48,7 @@ class AISummary {
 }
 
 class AIService {
-  final String? _apiKey = 'AIzaSyAow9z3t5HMbjqzm5tQAeEMH8UEhtSTXWw';
+  final String _apiKey = 'your api key here';
   final String _apiUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
@@ -64,7 +64,7 @@ class AIService {
         Uri.parse(_apiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'X-goog-api-key': _apiKey!,
+          'X-goog-api-key': _apiKey,
         },
         body: jsonEncode({
           "contents": [
@@ -151,15 +151,15 @@ class AIService {
       You are an AI assistant for a construction site reporting app.
       Your task is to create a concise summary of the daily reports.
       The user will provide a list of reports. Analyze them and return a JSON object with the following fields:
-      - \"total_issues\": The total number of issues reported.
-      - \"safety_issues\": The number of issues specifically related to safety.
-      - \"summary_text\": A short summary of the most important issues, progress, and observations.
+      - "total_issues": The total number of issues reported.
+      - "safety_issues": The number of issues specifically related to safety.
+      - "summary_text": A short summary of the most important issues, progress, and observations.
 
       If a field is not applicable, return 0 for the counts and an empty string for the summary.
       Do not add any extra commentary. Only return the JSON object.
 
       Here are the reports:
-      \"$reportsText\"
+      "${reportsText}"
     """;
 
     String jsonString = await _callGenerativeApi(prompt);
@@ -185,7 +185,7 @@ class AIService {
       Return the recommendations as a JSON array of strings.
 
       Here is the report:
-      \"$reportText\"
+      "${reportText}"
     """;
 
     String jsonString = await _callGenerativeApi(prompt);
