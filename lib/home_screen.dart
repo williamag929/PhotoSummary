@@ -22,7 +22,7 @@ class HomeScreen extends StatefulWidget {
   final CameraDescription camera;
   final DateTime? selectedDate;
 
-  const HomeScreen({Key? key, required this.camera, this.selectedDate}) : super(key: key);
+  const HomeScreen({super.key, required this.camera, this.selectedDate});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
                 ).then((_) => _loadSettings());
               },
             ),
@@ -218,8 +218,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
       return FloatingActionButton(
         heroTag: 'home_fab',
-        child: const Icon(Icons.add_a_photo),
         onPressed: _navigateToReportScreen,
+        child: const Icon(Icons.add_a_photo),
       );
     }
     return null;
@@ -386,15 +386,15 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return Dialog(
+          return const Dialog(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(20.0),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(width: 20),
-                  const Text("AI is processing..."),
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("AI is processing..."),
                 ],
               ),
             ),
@@ -482,15 +482,15 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return Dialog(
+          return const Dialog(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.all(20.0),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(width: 20),
-                  const Text("AI is summarizing..."),
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("AI is summarizing..."),
                 ],
               ),
             ),

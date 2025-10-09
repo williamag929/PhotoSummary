@@ -6,7 +6,7 @@ import 'dart:io';
 class ReportScreen extends StatefulWidget {
   final CameraDescription camera;
 
-  const ReportScreen({Key? key, required this.camera}) : super(key: key);
+  const ReportScreen({super.key, required this.camera});
 
   @override
   _ReportScreenState createState() => _ReportScreenState();
@@ -18,7 +18,7 @@ class _ReportScreenState extends State<ReportScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = '';
-  List<XFile> _imageFiles = [];
+  final List<XFile> _imageFiles = [];
   bool _isTyping = false;
   final TextEditingController _textEditingController = TextEditingController();
    String _textBeforeListen = '';
@@ -51,7 +51,7 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Report'),
+        title: const Text('Create Report'),
         actions: [
           IconButton(
             icon: Icon(_isTyping ? Icons.mic : Icons.keyboard),
@@ -77,7 +77,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   bottom: 150,
                   left: 0,
                   right: 0,
-                  child: Container(
+                  child: SizedBox(
                     height: 80,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
@@ -107,8 +107,8 @@ class _ReportScreenState extends State<ReportScreen> {
                           child: TextField(
                             controller: _textEditingController,
                             maxLines: 3,
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                            decoration: InputDecoration(
+                            style: const TextStyle(color: Colors.white, fontSize: 18),
+                            decoration: const InputDecoration(
                               hintText: 'Enter report details...',
                               hintStyle: TextStyle(color: Colors.white70),
                               border: OutlineInputBorder(),
@@ -122,17 +122,17 @@ class _ReportScreenState extends State<ReportScreen> {
                           child: Text(
                             _text,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white, fontSize: 18),
+                            style: const TextStyle(color: Colors.white, fontSize: 18),
                           ),
                         ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           FloatingActionButton(
                             heroTag: 'camera_fab',
                             onPressed: _takePicture,
-                            child: Icon(Icons.camera_alt),
+                            child: const Icon(Icons.camera_alt),
                           ),
                           if (!_isTyping)
                             FloatingActionButton(
@@ -143,7 +143,7 @@ class _ReportScreenState extends State<ReportScreen> {
                           FloatingActionButton(
                             heroTag: 'check_fab',
                             onPressed: _createReport,
-                            child: Icon(Icons.check),
+                            child: const Icon(Icons.check),
                           ),
                         ],
                       ),
@@ -153,7 +153,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ],
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
         },
       ),
@@ -188,8 +188,8 @@ class _ReportScreenState extends State<ReportScreen> {
             // Handle confidence rating if needed
           }
         }),
-        listenFor: Duration(minutes: 5),
-        pauseFor: Duration(seconds: 5),
+        listenFor: const Duration(minutes: 5),
+        pauseFor: const Duration(seconds: 5),
         partialResults: true,
         onSoundLevelChange: (level) => print('sound level $level'),
         cancelOnError: true,
@@ -206,6 +206,7 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _createReport() {
+    FocusScope.of(context).unfocus();
     final reportText = _isTyping ? _textEditingController.text : _text;
     if (_imageFiles.isNotEmpty && reportText.isNotEmpty) {
       Navigator.pop(context, {
@@ -214,7 +215,7 @@ class _ReportScreenState extends State<ReportScreen> {
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please take at least one picture and provide a description.')),
+        const SnackBar(content: Text('Please take at least one picture and provide a description.')),
       );
     }
   }

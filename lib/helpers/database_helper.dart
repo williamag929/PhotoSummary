@@ -1,8 +1,7 @@
-
 import 'dart:io';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import '../models/project.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._instance();
@@ -15,15 +14,13 @@ class DatabaseHelper {
   String colName = 'name';
 
   Future<Database?> get db async {
-    if (_db == null) {
-      _db = await _initDb();
-    }
+    _db ??= await _initDb();
     return _db;
   }
 
   Future<Database> _initDb() async {
     Directory dir = await getApplicationDocumentsDirectory();
-    String path = dir.path + 'todo.db';
+    String path = join(dir.path, 'todo.db');
     final todoDb =
         await openDatabase(path, version: 1, onCreate: _createDb);
     return todoDb;

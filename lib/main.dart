@@ -15,7 +15,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   final CameraDescription camera;
 
-  const MyApp({Key? key, required this.camera}) : super(key: key);
+  const MyApp({super.key, required this.camera});
 
   @override
   Widget build(BuildContext context) {

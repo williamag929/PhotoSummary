@@ -11,7 +11,7 @@ class CalendarScreen extends StatefulWidget {
   final CameraDescription camera;
   final int? projectId;
 
-  const CalendarScreen({Key? key, required this.camera, this.projectId}) : super(key: key);
+  const CalendarScreen({super.key, required this.camera, this.projectId});
 
   @override
   _CalendarScreenState createState() => _CalendarScreenState();
@@ -70,10 +70,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Calendar View'),
+        title: const Text('Calendar View'),
         actions: [
           IconButton(
-            icon: Icon(Icons.picture_as_pdf),
+            icon: const Icon(Icons.picture_as_pdf),
             onPressed: () {
               if (_selectedDay != null) {
                 _generatePdfForSelectedDay();
@@ -155,8 +155,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             );
           }
         },
-        label: Text('View Day'),
-        icon: Icon(Icons.arrow_forward),
+        label: const Text('View Day'),
+        icon: const Icon(Icons.arrow_forward),
       ),
     );
   }
@@ -173,7 +173,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: Center(
         child: Text(
           '${reports.length}',
-          style: TextStyle().copyWith(
+          style: const TextStyle().copyWith(
             color: Colors.white,
             fontSize: 12.0,
           ),

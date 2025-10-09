@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
 import '../models/report.dart';
 import 'dart:convert';
 import 'ai_service.dart';

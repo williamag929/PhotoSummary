@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
@@ -30,12 +32,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        title: const Text('Settings'),
       ),
       body: ListView(
         children: [
           SwitchListTile(
-            title: Text('Enable AI Summary Generation'),
+            title: const Text('Enable AI Summary Generation'),
             value: _isAiSummaryEnabled,
             onChanged: (bool value) {
               setState(() {
@@ -50,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           SwitchListTile(
-            title: Text('Enable Calendar View (Premium)'),
+            title: const Text('Enable Calendar View (Premium)'),
             value: _isCalendarViewEnabled,
             onChanged: (bool value) {
               setState(() {
@@ -58,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               });
               _settingsService.setCalendarViewEnabled(value);
             },
-            subtitle: Text('View reports in a calendar view.'),
+            subtitle: const Text('View reports in a calendar view.'),
           ),
         ],
       ),

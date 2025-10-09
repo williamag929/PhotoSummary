@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/project_provider.dart';
-import '../models/project.dart';
 
 class ProjectScreen extends StatelessWidget {
   final TextEditingController _textEditingController = TextEditingController();
