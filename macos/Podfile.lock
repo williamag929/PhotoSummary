@@ -2,6 +2,8 @@ PODS:
   - CwlCatchException (2.2.1):
     - CwlCatchExceptionSupport (~> 2.2.1)
   - CwlCatchExceptionSupport (2.2.1)
+  - file_selector_macos (0.0.1):
+    - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - open_file_mac (0.0.1):
     - FlutterMacOS
@@ -22,6 +24,7 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - open_file_mac (from `Flutter/ephemeral/.symlinks/plugins/open_file_mac/macos`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
@@ -36,6 +39,8 @@ SPEC REPOS:
     - CwlCatchExceptionSupport
 
 EXTERNAL SOURCES:
+  file_selector_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
   open_file_mac:
@@ -54,6 +59,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   CwlCatchException: 7acc161b299a6de7f0a46a6ed741eae2c8b4d75a
   CwlCatchExceptionSupport: 54ccab8d8c78907b57f99717fb19d4cc3bce02dc
+  file_selector_macos: cc3858c981fe6889f364731200d6232dac1d812d
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   open_file_mac: 0e554648e2a87ce59e9438e3e5ca3e552e90d89a
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46

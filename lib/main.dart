@@ -7,7 +7,12 @@ import 'providers/project_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env"); // Or your custom file name
+  } catch (e) {
+    // Handle error if .env file loading fails
+    //print('Error loading .env file: $e');
+  }
   final cameras = await availableCameras();
   final firstCamera = cameras.first;
   runApp(MyApp(camera: firstCamera));
