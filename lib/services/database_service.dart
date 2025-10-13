@@ -71,8 +71,10 @@ class DatabaseService {
 
   Future<List<Report>> getReportsByDate(DateTime date) async {
     final db = await database;
-    final startOfDay = DateTime(date.year, date.month, date.day).toIso8601String();
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
+    final startOfDay =
+        DateTime(date.year, date.month, date.day).toIso8601String();
+    final endOfDay =
+        DateTime(date.year, date.month, date.day, 23, 59, 59).toIso8601String();
     final maps = await db.query(
       'reports',
       where: 'date >= ? AND date <= ?',

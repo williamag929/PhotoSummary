@@ -1,4 +1,3 @@
-
 class Report {
   final String id;
   final DateTime date;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -7,6 +8,8 @@ import 'dart:io';
 import '../models/report.dart';
 import '../services/ai_service.dart';
 import '../services/settings_service.dart';
+import '../constants/app_theme.dart';
+import '../utils/platform_widgets.dart';
 
 class ReportScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -63,6 +66,8 @@ class _ReportScreenState extends State<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isIOS = Platform.isIOS;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Report'),
@@ -70,6 +75,7 @@ class _ReportScreenState extends State<ReportScreen> {
           IconButton(
             icon: Icon(_isTyping ? Icons.mic : Icons.keyboard),
             onPressed: () {
+              PlatformWidgets.lightHaptic();
               setState(() {
                 _isTyping = !_isTyping;
                 if (_isListening) {
@@ -103,10 +109,26 @@ class _ReportScreenState extends State<ReportScreen> {
                       itemBuilder: (context, index) {
                         return Padding(
                           padding: const EdgeInsets.all(8.0),
-                          child: Image.file(
-                            File(_imageFiles[index].path),
-                            width: 60,
-                            height: 60,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(
+                                  isIOS ? AppTheme.radiusSmall : 4),
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                              boxShadow: isIOS ? AppTheme.cardShadow : null,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  isIOS ? AppTheme.radiusSmall : 4),
+                              child: Image.file(
+                                File(_imageFiles[index].path),
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
                           ),
                         );
                       },
@@ -122,28 +144,70 @@ class _ReportScreenState extends State<ReportScreen> {
                       if (_isTyping)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: TextField(
-                            controller: _textEditingController,
-                            maxLines: 3,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 18),
-                            decoration: const InputDecoration(
-                              hintText: 'Enter report details...',
-                              hintStyle: TextStyle(color: Colors.white70),
-                              border: OutlineInputBorder(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isIOS
+                                  ? AppTheme.cardBackground
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(
+                                  isIOS ? AppTheme.radiusMedium : 8),
+                              boxShadow: isIOS ? AppTheme.elevatedShadow : null,
+                            ),
+                            child: TextField(
+                              controller: _textEditingController,
+                              maxLines: 3,
+                              style: TextStyle(
+                                color: isIOS ? Colors.black87 : Colors.white,
+                                fontSize: 17,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Enter report details...',
+                                hintStyle: TextStyle(
+                                  color: isIOS
+                                      ? Colors.grey.shade400
+                                      : Colors.white70,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      isIOS ? AppTheme.radiusMedium : 8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: isIOS
+                                    ? AppTheme.cardBackground
+                                    : Colors.white.withOpacity(0.1),
+                                contentPadding:
+                                    EdgeInsets.all(AppTheme.spacing12),
+                              ),
                             ),
                           ),
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 8.0),
-                          color: Colors.black54,
+                          margin: EdgeInsets.symmetric(
+                              horizontal: isIOS ? 16.0 : 0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: isIOS ? 12.0 : 8.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isIOS
+                                ? Colors.black.withOpacity(0.7)
+                                : Colors.black54,
+                            borderRadius: isIOS
+                                ? BorderRadius.circular(AppTheme.radiusMedium)
+                                : null,
+                          ),
                           child: Text(
-                            _text,
+                            _text.isEmpty
+                                ? 'Tap the microphone to start recording...'
+                                : _text,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 18),
+                            style: TextStyle(
+                              color:
+                                  _text.isEmpty ? Colors.white70 : Colors.white,
+                              fontSize: isIOS ? 17 : 18,
+                            ),
                           ),
                         ),
                       const SizedBox(height: 20),
@@ -152,26 +216,42 @@ class _ReportScreenState extends State<ReportScreen> {
                         children: [
                           FloatingActionButton(
                             heroTag: 'camera_fab',
-                            onPressed: _takePicture,
+                            onPressed: () {
+                              PlatformWidgets.mediumHaptic();
+                              _takePicture();
+                            },
                             child: const Icon(Icons.camera_alt),
                           ),
                           if (!_isTyping)
                             FloatingActionButton(
                               heroTag: 'mic_fab',
-                              onPressed:
-                                  _isListening ? _stopListen : _startListen,
+                              onPressed: () {
+                                PlatformWidgets.lightHaptic();
+                                _isListening ? _stopListen() : _startListen();
+                              },
+                              backgroundColor: _isListening
+                                  ? AppTheme.destructiveColor
+                                  : null,
                               child:
                                   Icon(_isListening ? Icons.pause : Icons.mic),
                             ),
                           FloatingActionButton(
                             heroTag: 'check_fab',
-                            onPressed: _createReport,
+                            onPressed: () {
+                              PlatformWidgets.mediumHaptic();
+                              _createReport();
+                            },
+                            backgroundColor: AppTheme.successColor,
                             child: const Icon(Icons.check),
                           ),
                           if (_isAiSummaryEnabled)
                             FloatingActionButton(
                               heroTag: 'safety_analysis_fab',
-                              onPressed: analyzeSafetyImage,
+                              onPressed: () {
+                                PlatformWidgets.lightHaptic();
+                                analyzeSafetyImage();
+                              },
+                              backgroundColor: AppTheme.warningColor,
                               child: const Icon(Icons.security),
                             ),
                           //if (_isAiSummaryEnabled)
@@ -183,7 +263,11 @@ class _ReportScreenState extends State<ReportScreen> {
                           if (_isAiSummaryEnabled)
                             FloatingActionButton(
                               heroTag: 'auto_report_fab',
-                              onPressed: () => createReportFromPhoto("On-site"),
+                              onPressed: () {
+                                PlatformWidgets.lightHaptic();
+                                createReportFromPhoto("On-site");
+                              },
+                              backgroundColor: AppTheme.primaryColor,
                               child: const Icon(Icons.description),
                             ),
                         ],
@@ -298,45 +382,85 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void showResultsDialog(ImageAnalysisResult result) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Safety Analysis'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Summary:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(result.summary),
-              SizedBox(height: 16),
-              if (result.hazards.isNotEmpty) ...[
-                Text('Hazards:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...result.hazards.map((h) => Text('• $h')),
-                SizedBox(height: 16),
-              ],
-              Text('OSHA Recommendations:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              ...result.oshaRecommendations.map((r) => Text('• $r')),
-              if (result.missingPPE.isNotEmpty) ...[
-                SizedBox(height: 16),
-                Text('Missing PPE:',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red)),
-                ...result.missingPPE.map(
-                    (p) => Text('• $p', style: TextStyle(color: Colors.red))),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
+    final isIOS = Platform.isIOS;
+
+    final dialogContent = SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Summary:', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: AppTheme.spacing8),
+          Text(result.summary),
+          SizedBox(height: AppTheme.spacing16),
+          if (result.hazards.isNotEmpty) ...[
+            Text('Hazards:',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.destructiveColor)),
+            SizedBox(height: AppTheme.spacing8),
+            ...result.hazards.map((h) => Padding(
+                  padding: EdgeInsets.only(bottom: AppTheme.spacing4),
+                  child: Text('• $h'),
+                )),
+            SizedBox(height: AppTheme.spacing16),
+          ],
+          Text('OSHA Recommendations:',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: AppTheme.spacing8),
+          ...result.oshaRecommendations.map((r) => Padding(
+                padding: EdgeInsets.only(bottom: AppTheme.spacing4),
+                child: Text('• $r'),
+              )),
+          if (result.missingPPE.isNotEmpty) ...[
+            SizedBox(height: AppTheme.spacing16),
+            Text('Missing PPE:',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.destructiveColor)),
+            SizedBox(height: AppTheme.spacing8),
+            ...result.missingPPE.map((p) => Padding(
+                  padding: EdgeInsets.only(bottom: AppTheme.spacing4),
+                  child: Text('• $p',
+                      style: TextStyle(color: AppTheme.destructiveColor)),
+                )),
+          ],
         ],
       ),
     );
+
+    if (isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Safety Analysis'),
+          content: dialogContent,
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () {
+                PlatformWidgets.lightHaptic();
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Safety Analysis'),
+          content: dialogContent,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<void> quickCheck() async {

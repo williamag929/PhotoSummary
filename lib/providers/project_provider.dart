@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../helpers/database_helper.dart';
 import '../models/project.dart';
@@ -11,17 +10,25 @@ class ProjectProvider with ChangeNotifier {
   Project? get currentProject => _currentProject;
 
   Future<void> fetchProjects() async {
-    final List<Map<String, dynamic>> projectMaps = await DatabaseHelper.instance.getProjects();
-    _projects = projectMaps.map((projectMap) => Project.fromMap(projectMap)).toList();
+    _projects = await DatabaseHelper.instance.getProjects();
     if (_projects.isNotEmpty) {
       _currentProject = _projects.first;
     }
     notifyListeners();
   }
 
-  Future<void> addProject(String name) async {
-    final newProject = Project(name: name);
-    await DatabaseHelper.instance.insertProject(newProject.toMap());
+  Future<void> addProject(Project project) async {
+    await DatabaseHelper.instance.insertProject(project);
+    await fetchProjects();
+  }
+
+  Future<void> updateProject(Project project) async {
+    await DatabaseHelper.instance.updateProject(project);
+    await fetchProjects();
+  }
+
+  Future<void> deleteProject(int id) async {
+    await DatabaseHelper.instance.deleteProject(id);
     await fetchProjects();
   }
 

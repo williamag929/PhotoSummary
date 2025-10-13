@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
@@ -13,10 +14,12 @@ import './report_screen.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
 import './providers/project_provider.dart';
-import './screens/project_screen.dart';
+import './screens/project_management_screen.dart';
 import './screens/settings_screen.dart';
 import './screens/full_screen_image_screen.dart';
 import './screens/calendar_screen.dart';
+import './constants/app_theme.dart';
+import './utils/platform_widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -44,7 +47,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.selectedDate != null) {
       _loadReportsForDate(widget.selectedDate!);
     } else {
-      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+      final projectProvider =
+          Provider.of<ProjectProvider>(context, listen: false);
       projectProvider.fetchProjects().then((_) {
         if (projectProvider.currentProject != null) {
           _loadReports(projectProvider.currentProject!.id);
@@ -95,18 +99,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final projectProvider = Provider.of<ProjectProvider>(context);
     final currentProject = projectProvider.currentProject;
+    final isIOS = Platform.isIOS;
 
     return Scaffold(
+      backgroundColor: isIOS ? AppTheme.backgroundColor : null,
       appBar: AppBar(
-        title: Text(widget.selectedDate != null ? DateFormat.yMMMMd().format(widget.selectedDate!) : currentProject?.name ?? 'JobLog'),
+        title: Text(widget.selectedDate != null
+            ? DateFormat.yMMMMd().format(widget.selectedDate!)
+            : currentProject?.name ?? 'JobLog'),
         actions: [
           if (widget.selectedDate == null)
             IconButton(
               icon: const Icon(Icons.folder),
               onPressed: () {
+                PlatformWidgets.lightHaptic();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProjectScreen()),
+                  MaterialPageRoute(builder: (context) => const ProjectManagementScreen()),
                 );
               },
             ),
@@ -123,93 +132,207 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               onPressed: () {
+                PlatformWidgets.lightHaptic();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => CalendarScreen(camera: widget.camera, projectId: _currentProjectId)),
+                  MaterialPageRoute(
+                      builder: (context) => CalendarScreen(
+                          camera: widget.camera, projectId: _currentProjectId)),
                 );
               },
             ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
-            onPressed: () => _generateReport(currentProject?.name ?? "Unknown Project"),
+            onPressed: () {
+              PlatformWidgets.lightHaptic();
+              _generateReport(currentProject?.name ?? "Unknown Project");
+            },
           ),
           if (widget.selectedDate == null)
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {
+                PlatformWidgets.lightHaptic();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const SettingsScreen()),
                 ).then((_) => _loadSettings());
               },
             ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: _reports.length,
-        itemBuilder: (context, index) {
-          final report = _reports[index];
-          String? firstImage;
-          if (report.photoPath != null) {
-            if (report.photoPath!.startsWith('[')) {
-              try {
-                final List<dynamic> imagePaths = jsonDecode(report.photoPath!);
-                if (imagePaths.isNotEmpty) {
-                  firstImage = imagePaths.first as String;
+      body: _reports.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: AppTheme.spacing16),
+                  Text(
+                    'No reports yet',
+                    style: AppTheme.title2Style
+                        .copyWith(color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: AppTheme.spacing8),
+                  Text(
+                    'Tap the camera button to create one',
+                    style: AppTheme.subheadStyle
+                        .copyWith(color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: EdgeInsets.all(isIOS ? AppTheme.spacing16 : 0),
+              itemCount: _reports.length,
+              itemBuilder: (context, index) {
+                final report = _reports[index];
+                String? firstImage;
+                if (report.photoPath != null) {
+                  if (report.photoPath!.startsWith('[')) {
+                    try {
+                      final List<dynamic> imagePaths =
+                          jsonDecode(report.photoPath!);
+                      if (imagePaths.isNotEmpty) {
+                        firstImage = imagePaths.first as String;
+                      }
+                    } catch (e) {
+                      firstImage =
+                          report.photoPath; // Fallback for single image path
+                    }
+                  } else {
+                    firstImage = report.photoPath;
+                  }
                 }
-              } catch (e) {
-                firstImage = report.photoPath; // Fallback for single image path
-              }
-            } else {
-              firstImage = report.photoPath;
-            }
-          }
 
-          return Dismissible(
-            key: Key(report.id.toString()),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: const Icon(Icons.delete, color: Colors.white),
+                return Dismissible(
+                  key: Key(report.id.toString()),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    margin: isIOS
+                        ? EdgeInsets.only(bottom: AppTheme.spacing12)
+                        : null,
+                    decoration: BoxDecoration(
+                      color: AppTheme.destructiveColor,
+                      borderRadius: isIOS
+                          ? BorderRadius.circular(AppTheme.radiusMedium)
+                          : null,
+                    ),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacing20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (direction) {
+                    PlatformWidgets.mediumHaptic();
+                    _deleteReport(report);
+                  },
+                  confirmDismiss: (direction) async {
+                    PlatformWidgets.lightHaptic();
+                    return await PlatformWidgets.showConfirmDialog(
+                      context: context,
+                      title: "Confirm",
+                      content: "Are you sure you wish to delete this report?",
+                      confirmText: "Delete",
+                      cancelText: "Cancel",
+                      isDestructive: true,
+                    );
+                  },
+                  child: _buildReportCard(report, firstImage, isIOS),
+                );
+              },
             ),
-            onDismissed: (direction) {
-              _deleteReport(report);
-            },
-            confirmDismiss: (direction) async {
-              return await showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text("Confirm"),
-                    content: const Text(
-                        "Are you sure you wish to delete this report?"),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text("CANCEL"),
-                      ),
-                      TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text("DELETE")),
-                    ],
-                  );
-                },
-              );
-            },
-            child: ListTile(
-              leading: firstImage != null
-                  ? Image.file(File(firstImage))
-                  : null,
-              title: Text(report.issue),
-              subtitle: Text(report.location),
-              onTap: () => _showReportDetails(report),
-            ),
-          );
-        },
-      ),
       floatingActionButton: _buildFloatingActionButton(),
+    );
+  }
+
+  Widget _buildReportCard(Report report, String? firstImage, bool isIOS) {
+    return Container(
+      margin: isIOS ? const EdgeInsets.only(bottom: AppTheme.spacing12) : null,
+      decoration: isIOS
+          ? BoxDecoration(
+              color: AppTheme.cardBackground,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              boxShadow: AppTheme.cardShadow,
+            )
+          : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius:
+              isIOS ? BorderRadius.circular(AppTheme.radiusMedium) : null,
+          onTap: () {
+            PlatformWidgets.lightHaptic();
+            _showReportDetails(report);
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isIOS ? AppTheme.spacing12 : 8.0),
+            child: Row(
+              children: [
+                if (firstImage != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                    child: Image.file(
+                      File(firstImage),
+                      width: isIOS ? 60 : 56,
+                      height: isIOS ? 60 : 56,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spacing12),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        report.issue,
+                        style: isIOS ? AppTheme.headlineStyle : null,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (report.location.isNotEmpty) ...[
+                        const SizedBox(height: AppTheme.spacing4),
+                        Text(
+                          report.location,
+                          style: isIOS
+                              ? AppTheme.subheadStyle
+                                  .copyWith(color: Colors.grey.shade600)
+                              : Theme.of(context).textTheme.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: AppTheme.spacing4),
+                      Text(
+                        DateFormat.yMd().add_jm().format(report.date),
+                        style: isIOS
+                            ? AppTheme.footnoteStyle
+                                .copyWith(color: Colors.grey.shade500)
+                            : Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isIOS)
+                  Icon(
+                    CupertinoIcons.chevron_right,
+                    color: Colors.grey.shade400,
+                    size: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -377,7 +500,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _createNewReport(
       List<String> imagePaths, String transcribedText) async {
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final projectProvider =
+        Provider.of<ProjectProvider>(context, listen: false);
     final currentProject = projectProvider.currentProject;
     final isAiEnabled = await _settingsService.isAiSummaryEnabled();
 

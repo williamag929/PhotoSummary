@@ -20,11 +20,11 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   final DatabaseService _dbService = DatabaseService();
   final PdfService _pdfService = PdfService();
-  
+
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  
+
   late final ValueNotifier<List<Report>> _selectedReports;
   Map<DateTime, List<Report>> _reportsByDate = {};
 
@@ -40,7 +40,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final allReports = await _dbService.getReports(projectId: widget.projectId);
     final Map<DateTime, List<Report>> reportsByDate = {};
     for (var report in allReports) {
-      final date = DateTime.utc(report.date.year, report.date.month, report.date.day);
+      final date =
+          DateTime.utc(report.date.year, report.date.month, report.date.day);
       if (reportsByDate[date] == null) {
         reportsByDate[date] = [];
       }
@@ -124,7 +125,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   itemCount: value.length,
                   itemBuilder: (context, index) {
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 4.0),
                       decoration: BoxDecoration(
                         border: Border.all(),
                         borderRadius: BorderRadius.circular(12.0),

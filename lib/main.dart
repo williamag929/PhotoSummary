@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'home_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'providers/project_provider.dart';
+import 'package:joblog/punch_list_app/services/database_service.dart'
+    as punch_list_service;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +17,21 @@ Future<void> main() async {
   }
   final cameras = await availableCameras();
   final firstCamera = cameras.first;
-  runApp(MyApp(camera: firstCamera));
+
+  // Initialize punch list database
+  final punchListDatabaseService = punch_list_service.DatabaseService();
+  await punchListDatabaseService.initDatabase();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ProjectProvider()),
+        Provider<punch_list_service.DatabaseService>.value(
+            value: punchListDatabaseService),
+      ],
+      child: MyApp(camera: firstCamera),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -25,15 +41,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => ProjectProvider(),
-      child: MaterialApp(
-        title: 'Job Log Smart',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: HomeScreen(camera: camera),
+    return MaterialApp(
+      title: 'Construction Manager',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: DashboardScreen(camera: camera),
     );
   }
 }
