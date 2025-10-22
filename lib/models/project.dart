@@ -1,18 +1,18 @@
 class Project {
   int? id;
   String name;
-  String company;
-  String address;
-  String zipcode;
+  String? company;
+  String? address;
+  String? zipcode;
   double? latitude;
   double? longitude;
 
   Project({
     this.id,
     required this.name,
-    required this.company,
-    required this.address,
-    required this.zipcode,
+    this.company,
+    this.address,
+    this.zipcode,
     this.latitude,
     this.longitude,
   });

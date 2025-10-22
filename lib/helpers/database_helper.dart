@@ -57,6 +57,7 @@ class DatabaseHelper {
 
   Future<int> insertProject(Project project) async {
     Database? db = await this.db;
+    print(project.toMap());
     final int result = await db!.insert(projectsTable, project.toMap());
     return result;
   }

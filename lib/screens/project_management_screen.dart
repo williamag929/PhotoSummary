@@ -39,7 +39,7 @@ class _ProjectManagementScreenState extends State<ProjectManagementScreen> {
                 margin: const EdgeInsets.all(8.0),
                 child: ListTile(
                   title: Text(project.name),
-                  subtitle: Text('${project.company} - ${project.address}'),
+                  subtitle: Text('${project.company ?? ''} - ${project.address ?? ''}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
